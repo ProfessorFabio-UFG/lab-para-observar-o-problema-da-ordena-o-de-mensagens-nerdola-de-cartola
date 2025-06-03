@@ -59,10 +59,11 @@ def getListOfPeers():
   return peers
 
 class MsgHandler(threading.Thread):
-  def __init__(self, sock, my_self):
+  def __init__(self, sock, my_self, number_of_peers):
     threading.Thread.__init__(self)
     self.sock = sock
     self.my_self = my_self
+    self.number_of_peers = number_of_peers
 
   def run(self):
     print('Handler is ready. Waiting for the handshakes...')
@@ -74,7 +75,7 @@ class MsgHandler(threading.Thread):
     
     # Wait until handshakes are received from all other processes
     # (to make sure that all processes are synchronized before they start exchanging messages)
-    while handShakeCount < N:
+    while handShakeCount < self.number_of_peers:
       msgPack = self.sock.recv(1024)
       msg = pickle.loads(msgPack)
       #print ('########## unpickled msgPack: ', msg)
@@ -94,7 +95,7 @@ class MsgHandler(threading.Thread):
       msg = pickle.loads(msgPack)
       if msg[0] == -1:   # count the 'stop' messages from the other processes
         stopCount = stopCount + 1
-        if stopCount == N:
+        if stopCount == self.number_of_peers:
           break  # stop loop when all other processes have finished
       else:
         print('Message ' + str(msg[1]) + ' from process ' + str(msg[0]))
@@ -156,12 +157,12 @@ def main():
     # (fully started processes start sending data messages, which the others try to interpret as control messages) 
     time.sleep(5)
 
+    peers = getListOfPeers()
+
     # Create receiving message handler
-    msgHandler = MsgHandler(udp_socket, my_self)
+    msgHandler = MsgHandler(udp_socket, my_self, len(peers))
     msgHandler.start()
     print('Handler started')
-
-    peers = getListOfPeers()
 
     if DEV_MODE:
       for i in range(len(peers)):
@@ -187,7 +188,7 @@ def main():
 
     print('Main Thread: Sent all handshakes. handShakeCount=', str(handShakeCount))
 
-    while (handShakeCount < N):
+    while (handShakeCount < len(peers)):
       pass  # find a better way to wait for the handshakes
 
     # Send a sequence of data messages to all other processes 

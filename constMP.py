@@ -1,4 +1,3 @@
-N = 2   # Number of peers
 SERVER_ADDR ='127.0.0.1'
 SERVER_PORT = 5678
 GROUPMNGR_ADDR = '127.0.0.1'
